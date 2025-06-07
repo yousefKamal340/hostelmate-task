@@ -46,8 +46,8 @@ I chose to implement customizable card themes because it offers:
 
 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/notemate.git
-cd notemate
+git clone https://github.com/yousefKamal340/hostelmate-task.git
+cd hostelmate-task
 ```
 
 2. Set up environment variables:
