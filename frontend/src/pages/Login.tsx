@@ -9,7 +9,7 @@ import {
   Alert,
 } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');

@@ -1,23 +1,28 @@
 export interface User {
   _id: string;
+  username: string;
   email: string;
-  name: string;
 }
 
 export interface Theme {
   backgroundColor: string;
   textColor: string;
+  gradientStart?: string;
+  gradientEnd?: string;
+  useGradient?: boolean;
+  borderRadius?: number;
+  elevation?: number;
 }
 
 export interface Note {
   _id: string;
   title: string;
   content: string;
-  theme: Theme;
-  status: 'active' | 'archived' | 'completed';
-  order: number;
+  theme?: Theme;
+  status: 'active' | 'completed' | 'archived';
   createdAt: string;
   updatedAt: string;
+  order: number;
 }
 
 export interface AuthState {
