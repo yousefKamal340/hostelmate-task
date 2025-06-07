@@ -1,0 +1,32 @@
+{
+  "name": "notemate",
+  "version": "1.0.0",
+  "description": "A full-stack note-taking application built with React, Node.js, and Express, featuring customizable note card themes.",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\"",
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yousefKamal340/hostelmate-task.git"
+  },
+  "keywords": [
+    "notes",
+    "react",
+    "nodejs",
+    "typescript",
+    "mongodb"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yousefKamal340/hostelmate-task/issues"
+  },
+  "homepage": "https://github.com/yousefKamal340/hostelmate-task#readme",
+  "devDependencies": {
+    "concurrently": "^8.0.1"
+  }
+}
