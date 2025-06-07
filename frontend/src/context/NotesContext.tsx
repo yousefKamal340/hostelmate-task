@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Note } from '../types';
 import { useToken } from './TokenContext';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 interface NotesContextType {
   notes: Note[];
@@ -34,14 +34,17 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
   const { token } = useToken();
 
   const fetchNotes = useCallback(async () => {
+    if (!token) return;
+    
     try {
       setIsLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/notes`, {
+      const response = await axios.get(`${API_URL}/notes`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setNotes(response.data.sort((a: Note, b: Note) => a.order - b.order));
     } catch (error) {
       console.error('Failed to fetch notes:', error);
+      setNotes([]);
     } finally {
       setIsLoading(false);
     }
@@ -52,8 +55,10 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
   }, [fetchNotes]);
 
   const createNote = async (note: Partial<Note>): Promise<Note> => {
+    if (!token) throw new Error('No authentication token found');
+
     const response = await axios.post(
-      `${API_BASE_URL}/notes`,
+      `${API_URL}/notes`,
       note,
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -65,8 +70,10 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
   };
 
   const updateNote = async (id: string, note: Partial<Note>): Promise<void> => {
+    if (!token) throw new Error('No authentication token found');
+
     await axios.patch(
-      `${API_BASE_URL}/notes/${id}`,
+      `${API_URL}/notes/${id}`,
       note,
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -78,7 +85,9 @@ export const NotesProvider: React.FC<NotesProviderProps> = ({ children }) => {
   };
 
   const deleteNote = async (id: string): Promise<void> => {
-    await axios.delete(`${API_BASE_URL}/notes/${id}`, {
+    if (!token) throw new Error('No authentication token found');
+
+    await axios.delete(`${API_URL}/notes/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     setNotes((prev) => prev.filter((n) => n._id !== id));

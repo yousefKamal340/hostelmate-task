@@ -9,12 +9,111 @@ interface AuthRequest extends Request {
 
 const router = Router();
 
-// Validation middleware
-const noteValidation = [
+// Validation middleware for creating notes
+const createNoteValidation = [
   body('title').notEmpty().withMessage('Title is required'),
   body('content').notEmpty().withMessage('Content is required'),
-  body('theme.backgroundColor').optional().isHexColor().withMessage('Invalid background color'),
-  body('theme.textColor').optional().isHexColor().withMessage('Invalid text color'),
+  body('theme.backgroundColor')
+    .optional()
+    .custom((value) => {
+      // Accept both hex and rgba colors
+      const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+      const rgbaPattern = /^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*(?:0|1|0?\.\d+))?\s*\)$/;
+      if (!hexPattern.test(value) && !rgbaPattern.test(value)) {
+        throw new Error('Invalid background color format');
+      }
+      return true;
+    }),
+  body('theme.textColor')
+    .optional()
+    .custom((value) => {
+      // Accept both hex and rgba colors
+      const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+      const rgbaPattern = /^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*(?:0|1|0?\.\d+))?\s*\)$/;
+      if (!hexPattern.test(value) && !rgbaPattern.test(value)) {
+        throw new Error('Invalid text color format');
+      }
+      return true;
+    }),
+  body('theme.useGradient').optional().isBoolean().withMessage('useGradient must be a boolean'),
+  body('theme.gradientStart')
+    .optional()
+    .custom((value) => {
+      // Accept both hex and rgba colors
+      const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+      const rgbaPattern = /^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*(?:0|1|0?\.\d+))?\s*\)$/;
+      if (!hexPattern.test(value) && !rgbaPattern.test(value)) {
+        throw new Error('Invalid gradient start color format');
+      }
+      return true;
+    }),
+  body('theme.gradientEnd')
+    .optional()
+    .custom((value) => {
+      // Accept both hex and rgba colors
+      const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+      const rgbaPattern = /^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*(?:0|1|0?\.\d+))?\s*\)$/;
+      if (!hexPattern.test(value) && !rgbaPattern.test(value)) {
+        throw new Error('Invalid gradient end color format');
+      }
+      return true;
+    }),
+  body('theme.borderRadius').optional().isNumeric().withMessage('borderRadius must be a number'),
+  body('theme.elevation').optional().isNumeric().withMessage('elevation must be a number'),
+  body('status').optional().isIn(['active', 'archived', 'completed']).withMessage('Invalid status')
+];
+
+// Validation middleware for updating notes
+const updateNoteValidation = [
+  body('title').optional().notEmpty().withMessage('Title cannot be empty if provided'),
+  body('content').optional().notEmpty().withMessage('Content cannot be empty if provided'),
+  body('theme.backgroundColor')
+    .optional()
+    .custom((value) => {
+      // Accept both hex and rgba colors
+      const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+      const rgbaPattern = /^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*(?:0|1|0?\.\d+))?\s*\)$/;
+      if (!hexPattern.test(value) && !rgbaPattern.test(value)) {
+        throw new Error('Invalid background color format');
+      }
+      return true;
+    }),
+  body('theme.textColor')
+    .optional()
+    .custom((value) => {
+      // Accept both hex and rgba colors
+      const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+      const rgbaPattern = /^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*(?:0|1|0?\.\d+))?\s*\)$/;
+      if (!hexPattern.test(value) && !rgbaPattern.test(value)) {
+        throw new Error('Invalid text color format');
+      }
+      return true;
+    }),
+  body('theme.useGradient').optional().isBoolean().withMessage('useGradient must be a boolean'),
+  body('theme.gradientStart')
+    .optional()
+    .custom((value) => {
+      // Accept both hex and rgba colors
+      const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+      const rgbaPattern = /^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*(?:0|1|0?\.\d+))?\s*\)$/;
+      if (!hexPattern.test(value) && !rgbaPattern.test(value)) {
+        throw new Error('Invalid gradient start color format');
+      }
+      return true;
+    }),
+  body('theme.gradientEnd')
+    .optional()
+    .custom((value) => {
+      // Accept both hex and rgba colors
+      const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+      const rgbaPattern = /^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*(?:0|1|0?\.\d+))?\s*\)$/;
+      if (!hexPattern.test(value) && !rgbaPattern.test(value)) {
+        throw new Error('Invalid gradient end color format');
+      }
+      return true;
+    }),
+  body('theme.borderRadius').optional().isNumeric().withMessage('borderRadius must be a number'),
+  body('theme.elevation').optional().isNumeric().withMessage('elevation must be a number'),
   body('status').optional().isIn(['active', 'archived', 'completed']).withMessage('Invalid status')
 ];
 
@@ -30,11 +129,15 @@ router.get('/', auth, async (req: AuthRequest, res: Response) => {
 });
 
 // Create a note
-router.post('/', [auth, ...noteValidation], async (req: AuthRequest, res: Response) => {
+router.post('/', [auth, ...createNoteValidation], async (req: AuthRequest, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      console.log('Validation errors:', errors.array());
+      return res.status(400).json({ 
+        message: 'Validation failed',
+        errors: errors.array() 
+      });
     }
 
     const { title, content, theme, status } = req.body;
@@ -58,16 +161,55 @@ router.post('/', [auth, ...noteValidation], async (req: AuthRequest, res: Respon
     await note.save();
     res.status(201).json(note);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error creating note:', error);
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
+// Update a note's theme
+router.patch('/:id/theme', [auth, ...updateNoteValidation], async (req: AuthRequest, res: Response) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
+      return res.status(400).json({ 
+        message: 'Validation failed',
+        errors: errors.array() 
+      });
+    }
+
+    const { theme } = req.body;
+    const note = await Note.findOne({ _id: req.params.id, user: req.user._id });
+
+    if (!note) {
+      return res.status(404).json({ message: 'Note not found' });
+    }
+
+    note.theme = { ...note.theme, ...theme };
+    await note.save();
+    res.json(note);
+  } catch (error) {
+    console.error('Error updating note theme:', error);
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
   }
 });
 
 // Update a note
-router.patch('/:id', [auth, ...noteValidation], async (req: AuthRequest, res: Response) => {
+router.patch('/:id', [auth, ...updateNoteValidation], async (req: AuthRequest, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      console.log('Validation errors:', errors.array());
+      return res.status(400).json({ 
+        message: 'Validation failed',
+        errors: errors.array() 
+      });
     }
 
     const { title, content, theme, status } = req.body;
@@ -79,13 +221,17 @@ router.patch('/:id', [auth, ...noteValidation], async (req: AuthRequest, res: Re
 
     if (title) note.title = title;
     if (content) note.content = content;
-    if (theme) note.theme = theme;
+    if (theme) note.theme = { ...note.theme, ...theme };
     if (status) note.status = status;
 
     await note.save();
     res.json(note);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error updating note:', error);
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
   }
 });
 
@@ -100,7 +246,10 @@ router.delete('/:id', auth, async (req: AuthRequest, res: Response) => {
 
     res.json({ message: 'Note deleted' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
   }
 });
 
@@ -140,7 +289,10 @@ router.patch('/:id/order', auth, async (req: AuthRequest, res: Response) => {
 
     res.json(note);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
   }
 });
 

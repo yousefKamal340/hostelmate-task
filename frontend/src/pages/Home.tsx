@@ -1,311 +1,143 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-  Container,
-  Grid,
   Box,
+  AppBar,
+  Toolbar,
   Typography,
   Button,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Drawer,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  IconButton,
-  Chip,
-  Stack,
-  Fade,
   useTheme,
-  useMediaQuery,
-  InputAdornment,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
-  FilterList as FilterIcon,
-  Search as SearchIcon,
-  CheckCircle as CheckCircleIcon,
-  Archive as ArchiveIcon,
-  AllInbox as AllIcon,
-  Clear as ClearIcon,
 } from '@mui/icons-material';
-import { NoteCard } from '../components/NoteCard';
 import { useNotes } from '../hooks/useNotes';
 import { Note } from '../types';
+import { NotesGrid } from '../components/NotesGrid';
+import { CreateNoteDialog } from '../components/CreateNoteDialog';
+import { FilterSidebar } from '../components/FilterSidebar';
 
-type FilterStatus = 'all' | 'active' | 'completed' | 'archived';
+const DRAWER_WIDTH = 320;
+const MAX_CONTENT_WIDTH = 1600; // Maximum width for centered content
+
+interface Filters {
+  status: string;
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  searchQuery: string;
+}
 
 export const Home: React.FC = () => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [isDrawerOpen, setIsDrawerOpen] = useState(!isMobile);
   const [isAddingNote, setIsAddingNote] = useState(false);
-  const [newNote, setNewNote] = useState({ title: '', content: '' });
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<Filters>({
+    status: 'all',
+    dateRange: {
+      start: '',
+      end: '',
+    },
+    searchQuery: '',
+  });
+  const [error, setError] = useState<string | null>(null);
   
-  const { notes, addNote, updateNote, deleteNote } = useNotes();
+  const { notes, createNote, updateNote, updateNoteTheme, deleteNote, updateNotesOrder } = useNotes();
 
-  useEffect(() => {
-    if (isMobile) {
-      setIsDrawerOpen(false);
-    }
-  }, [isMobile]);
-
-  const handleAddNote = async () => {
-    if (newNote.title.trim() && newNote.content.trim()) {
-      await addNote({
-        ...newNote,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        theme: {
-          backgroundColor: '#ffffff',
-          textColor: '#000000',
-          borderRadius: 8,
-          elevation: 2,
-        },
-      });
-      setNewNote({ title: '', content: '' });
-      setIsAddingNote(false);
+  const handleStatusChange = async (noteId: string, status: 'active' | 'completed' | 'archived') => {
+    try {
+      await updateNote(noteId, { status });
+    } catch (err) {
+      setError('Failed to update note status');
     }
   };
 
-  const filteredNotes = notes
-    .filter((note) => {
-      if (filterStatus === 'all') return true;
-      return note.status === filterStatus;
-    })
-    .filter((note) => {
-      if (!searchQuery) return true;
-      const query = searchQuery.toLowerCase();
-      return (
-        note.title.toLowerCase().includes(query) ||
-        note.content.toLowerCase().includes(query)
-      );
-    });
+  const handleAddNote = async (note: Partial<Note>) => {
+    try {
+      await createNote(note);
+      setIsAddingNote(false);
+    } catch (err) {
+      setError('Failed to create note');
+    }
+  };
 
-  const drawerWidth = 240;
-
-  const filterOptions = [
-    { value: 'all', label: 'All Notes', icon: <AllIcon /> },
-    { value: 'active', label: 'Active', icon: <FilterIcon /> },
-    { value: 'completed', label: 'Completed', icon: <CheckCircleIcon /> },
-    { value: 'archived', label: 'Archived', icon: <ArchiveIcon /> },
-  ];
+  const filteredNotes = notes.filter((note) => {
+    const matchesStatus = filters.status === 'all' || note.status === filters.status;
+    const matchesSearch = !filters.searchQuery || 
+      note.title.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
+      note.content.toLowerCase().includes(filters.searchQuery.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <Drawer
-        variant={isMobile ? 'temporary' : 'persistent'}
-        anchor="left"
-        open={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
+      <AppBar
+        position="fixed"
         sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-            borderRight: '1px solid rgba(0, 0, 0, 0.12)',
-            background: theme.palette.background.default,
-          },
+          width: `calc(100% - ${DRAWER_WIDTH}px)`,
+          ml: `${DRAWER_WIDTH}px`,
         }}
       >
-        <Box sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            Filters
+        <Toolbar>
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+            NoteMate
           </Typography>
-          <List>
-            {filterOptions.map((option) => (
-              <ListItem
-                key={option.value}
-                onClick={() => setFilterStatus(option.value as FilterStatus)}
-                sx={{
-                  borderRadius: 1,
-                  mb: 1,
-                  cursor: 'pointer',
-                  backgroundColor: filterStatus === option.value ? 'primary.main' : 'transparent',
-                  color: filterStatus === option.value ? 'primary.contrastText' : 'inherit',
-                  '&:hover': {
-                    backgroundColor: filterStatus === option.value ? 'primary.dark' : 'action.hover',
-                  },
-                  '& .MuiListItemIcon-root': {
-                    color: filterStatus === option.value ? 'inherit' : 'text.secondary',
-                  },
-                }}
-              >
-                <ListItemIcon>
-                  {option.icon}
-                </ListItemIcon>
-                <ListItemText primary={option.label} />
-                {filterStatus === option.value && (
-                  <Chip
-                    size="small"
-                    label={filteredNotes.length}
-                    sx={{
-                      ml: 1,
-                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    }}
-                  />
-                )}
-              </ListItem>
-            ))}
-          </List>
-        </Box>
-      </Drawer>
+          <Button
+            color="inherit"
+            startIcon={<AddIcon />}
+            onClick={() => setIsAddingNote(true)}
+          >
+            Add Note
+          </Button>
+        </Toolbar>
+      </AppBar>
+
+      <FilterSidebar
+        filters={filters}
+        onFilterChange={setFilters}
+      />
 
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          width: `calc(100% - ${DRAWER_WIDTH}px)`,
+          // ml: `${DRAWER_WIDTH}px`,
+          mt: 8,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
         }}
       >
-        <Box sx={{ mb: 4 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              mb: 3,
-            }}
-          >
-            <Typography variant="h4" component="h1">
-              My Notes
-              {isMobile && (
-                <IconButton
-                  onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-                  sx={{ ml: 1 }}
-                >
-                  <FilterIcon />
-                </IconButton>
-              )}
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setIsAddingNote(true)}
-            >
-              Add Note
-            </Button>
-          </Box>
-
-          <TextField
-            fullWidth
-            placeholder="Search notes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-              endAdornment: searchQuery && (
-                <InputAdornment position="end">
-                  <IconButton size="small" onClick={() => setSearchQuery('')}>
-                    <ClearIcon />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-            sx={{ maxWidth: 600 }}
+        <Box
+          sx={{
+            width: '100%',
+            maxWidth: MAX_CONTENT_WIDTH,
+            mx: 'auto',
+          }}
+        >
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
+          <NotesGrid
+            notes={filteredNotes}
+            onUpdateNote={updateNote}
+            onUpdateTheme={updateNoteTheme}
+            onDeleteNote={deleteNote}
+            onReorderNotes={updateNotesOrder}
+            onStatusChange={handleStatusChange}
           />
         </Box>
-
-        <Grid container spacing={3}>
-          {filteredNotes.map((note) => (
-            <Box
-              key={note._id}
-              sx={{
-                width: {
-                  xs: '100%',
-                  sm: '50%',
-                  md: '33.33%',
-                  lg: '25%',
-                },
-                p: 1.5,
-              }}
-            >
-              <Fade in>
-                <div>
-                  <NoteCard
-                    note={note}
-                    onUpdate={updateNote}
-                    onDelete={deleteNote}
-                  />
-                </div>
-              </Fade>
-            </Box>
-          ))}
-          {filteredNotes.length === 0 && (
-            <Box
-              sx={{
-                width: '100%',
-                p: 1.5,
-              }}
-            >
-              <Box
-                sx={{
-                  textAlign: 'center',
-                  py: 8,
-                  color: 'text.secondary',
-                }}
-              >
-                <Typography variant="h6">
-                  {searchQuery
-                    ? 'No notes match your search'
-                    : filterStatus === 'all'
-                    ? 'No notes yet. Create your first note!'
-                    : `No ${filterStatus} notes`}
-                </Typography>
-              </Box>
-            </Box>
-          )}
-        </Grid>
       </Box>
 
-      <Dialog
+      <CreateNoteDialog
         open={isAddingNote}
         onClose={() => setIsAddingNote(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Add New Note</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              fullWidth
-              label="Title"
-              value={newNote.title}
-              onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
-            />
-            <TextField
-              fullWidth
-              multiline
-              rows={4}
-              label="Content"
-              value={newNote.content}
-              onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsAddingNote(false)}>Cancel</Button>
-          <Button
-            onClick={handleAddNote}
-            variant="contained"
-            disabled={!newNote.title.trim() || !newNote.content.trim()}
-          >
-            Add Note
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onSubmit={handleAddNote}
+      />
     </Box>
   );
 }; 

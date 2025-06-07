@@ -7,6 +7,11 @@ export interface INote extends Document {
   theme: {
     backgroundColor: string;
     textColor: string;
+    useGradient?: boolean;
+    gradientStart?: string;
+    gradientEnd?: string;
+    borderRadius?: number;
+    elevation?: number;
   };
   status: 'active' | 'archived' | 'completed';
   order: number;
@@ -35,6 +40,24 @@ const noteSchema = new Schema({
     textColor: {
       type: String,
       default: '#000000'
+    },
+    useGradient: {
+      type: Boolean,
+      default: false
+    },
+    gradientStart: {
+      type: String
+    },
+    gradientEnd: {
+      type: String
+    },
+    borderRadius: {
+      type: Number,
+      default: 8
+    },
+    elevation: {
+      type: Number,
+      default: 4
     }
   },
   status: {

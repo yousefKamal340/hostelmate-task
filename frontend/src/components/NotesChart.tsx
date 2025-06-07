@@ -1,128 +1,119 @@
 import React, { useMemo } from 'react';
-import { Box, Typography, useTheme } from '@mui/material';
+import { Box, Typography, useTheme, alpha } from '@mui/material';
 import { Note } from '../types';
+import { motion } from 'framer-motion';
 
 interface NotesChartProps {
   notes: Note[];
 }
 
-interface ChartSegment {
-  status: string;
-  count: number;
-  color: string;
-  startAngle: number;
-  endAngle: number;
-}
+const MotionBox = motion(Box);
 
 export const NotesChart: React.FC<NotesChartProps> = ({ notes }) => {
   const theme = useTheme();
-  const size = 200;
-  const centerX = size / 2;
-  const centerY = size / 2;
-  const radius = (size / 2) * 0.8;
 
-  const segments = useMemo(() => {
-    const statusCounts = notes.reduce((acc, note) => {
-      acc[note.status] = (acc[note.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+  const stats = useMemo(() => {
+    const total = notes.length;
+    const active = notes.filter((note) => note.status === 'active').length;
+    const completed = notes.filter((note) => note.status === 'completed').length;
+    const archived = notes.filter((note) => note.status === 'archived').length;
 
-    const total = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
-    let currentAngle = 0;
-
-    const colors = {
-      active: theme.palette.primary.main,
-      completed: theme.palette.success.main,
-      archived: theme.palette.grey[500],
+    return {
+      total,
+      active,
+      completed,
+      archived,
+      activePercentage: total ? Math.round((active / total) * 100) : 0,
+      completedPercentage: total ? Math.round((completed / total) * 100) : 0,
+      archivedPercentage: total ? Math.round((archived / total) * 100) : 0,
     };
+  }, [notes]);
 
-    return Object.entries(statusCounts).map(([status, count]): ChartSegment => {
-      const percentage = count / total;
-      const startAngle = currentAngle;
-      const endAngle = currentAngle + percentage * 2 * Math.PI;
-      currentAngle = endAngle;
-
-      return {
-        status,
-        count,
-        color: colors[status as keyof typeof colors],
-        startAngle,
-        endAngle,
-      };
-    });
-  }, [notes, theme]);
-
-  const getPathData = (segment: ChartSegment) => {
-    const startX = centerX + radius * Math.cos(segment.startAngle);
-    const startY = centerY + radius * Math.sin(segment.startAngle);
-    const endX = centerX + radius * Math.cos(segment.endAngle);
-    const endY = centerY + radius * Math.sin(segment.endAngle);
-
-    const largeArcFlag = segment.endAngle - segment.startAngle > Math.PI ? 1 : 0;
-
-    return `
-      M ${centerX} ${centerY}
-      L ${startX} ${startY}
-      A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}
-      Z
-    `;
-  };
+  const chartData = [
+    {
+      label: 'Active',
+      value: stats.active,
+      percentage: stats.activePercentage,
+      color: theme.palette.primary.main,
+    },
+    {
+      label: 'Completed',
+      value: stats.completed,
+      percentage: stats.completedPercentage,
+      color: theme.palette.success.main,
+    },
+    {
+      label: 'Archived',
+      value: stats.archived,
+      percentage: stats.archivedPercentage,
+      color: theme.palette.grey[500],
+    },
+  ];
 
   return (
-    <Box sx={{ p: 2, textAlign: 'center' }}>
-      <Typography variant="h6" gutterBottom>
-        Notes by Status
+    <Box>
+      <Typography variant="h6" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
+        Notes Overview
       </Typography>
-      <Box sx={{ position: 'relative', width: size, height: size, margin: 'auto' }}>
-        <svg width={size} height={size}>
-          {segments.map((segment, index) => (
-            <g key={segment.status}>
-              <path
-                d={getPathData(segment)}
-                fill={segment.color}
-                stroke={theme.palette.background.paper}
-                strokeWidth="2"
-              >
-                <title>{`${segment.status}: ${segment.count} notes`}</title>
-              </path>
-            </g>
-          ))}
-        </svg>
-        <Box
+
+      <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+        <MotionBox
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3 }}
           sx={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 2,
-            mt: 2,
+            p: 2,
+            borderRadius: 2,
+            backgroundColor: alpha(theme.palette.primary.main, 0.1),
+            minWidth: 120,
           }}
         >
-          {segments.map((segment) => (
-            <Box
-              key={segment.status}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-              }}
-            >
-              <Box
-                sx={{
-                  width: 12,
-                  height: 12,
-                  backgroundColor: segment.color,
-                  borderRadius: '50%',
-                }}
-              />
-              <Typography variant="caption">
-                {segment.status} ({segment.count})
+          <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
+            {stats.total}
+          </Typography>
+          <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.7) }}>
+            Total Notes
+          </Typography>
+        </MotionBox>
+
+        {chartData.map((item, index) => (
+          <MotionBox
+            key={item.label}
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3, delay: index * 0.1 }}
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              backgroundColor: alpha(item.color, 0.1),
+              minWidth: 120,
+              position: 'relative',
+              overflow: 'hidden',
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                width: `${item.percentage}%`,
+                height: 3,
+                backgroundColor: item.color,
+                transition: 'width 0.5s ease',
+              },
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1 }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: item.color }}>
+                {item.value}
+              </Typography>
+              <Typography variant="caption" sx={{ color: alpha(item.color, 0.7) }}>
+                {item.percentage}%
               </Typography>
             </Box>
-          ))}
-        </Box>
+            <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.7) }}>
+              {item.label}
+            </Typography>
+          </MotionBox>
+        ))}
       </Box>
     </Box>
   );

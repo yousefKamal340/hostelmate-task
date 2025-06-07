@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 interface TokenContextType {
   token: string | null;
   setToken: (token: string | null) => void;
+  getAuthHeader: () => { Authorization: string } | {};
 }
 
 const TokenContext = createContext<TokenContextType | undefined>(undefined);
@@ -15,27 +16,27 @@ export const useToken = () => {
   return context;
 };
 
-interface TokenProviderProps {
-  children: React.ReactNode;
-}
-
-export const TokenProvider: React.FC<TokenProviderProps> = ({ children }) => {
-  const [token, setTokenState] = useState<string | null>(() => {
-    return localStorage.getItem('token');
-  });
+export const TokenProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [token, setTokenState] = useState<string | null>(() => localStorage.getItem('token'));
 
   const setToken = useCallback((newToken: string | null) => {
-    setTokenState(newToken);
     if (newToken) {
       localStorage.setItem('token', newToken);
     } else {
       localStorage.removeItem('token');
     }
+    setTokenState(newToken);
   }, []);
 
-  return (
-    <TokenContext.Provider value={{ token, setToken }}>
-      {children}
-    </TokenContext.Provider>
-  );
+  const getAuthHeader = useCallback(() => {
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, [token]);
+
+  const value = {
+    token,
+    setToken,
+    getAuthHeader,
+  };
+
+  return <TokenContext.Provider value={value}>{children}</TokenContext.Provider>;
 }; 

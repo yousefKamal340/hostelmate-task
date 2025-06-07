@@ -23,6 +23,9 @@ const defaultNote: Partial<Note> = {
   theme: {
     backgroundColor: '#ffffff',
     textColor: '#000000',
+    useGradient: false,
+    borderRadius: 8,
+    elevation: 4,
   },
 };
 
